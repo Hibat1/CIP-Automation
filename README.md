@@ -10,21 +10,12 @@ Grounded in experimental research from **Université du 20 Août 1955, Skikda, A
 
 |Phase| Name      | Duration | Chemical      | Efficiency |
 |---|---|---|---|---|
-| 1 | Initial Rinse | 3 min | Fresh water     | — |
-| 2 | Alkaline Wash | 42 min | NaOH 2% @ 30°C | η = 94.71% |
-| 3 | Safety Rinse | 3 min | Fresh water       | — |
-| 4 | Acid Wash    | 27 min | CH₃COOH 1% @ 40°C | η = 99.60% |
-| 5 | Final Rinse | 5 min | Fresh water + Cond gate ≤ 0.5 mS/cm | — |
-![PHASE1](CIP_01_IDLE.gif)
-![PHASE2](CIP_02_PERMISSIVE_CHECK.gif)
-![PHASE3](CIP_03_START_COMMAND.gif)
-![PHASE4](CIP_04_PHASE1_InitRinse.gif)
-![PHASE5](CIP_05_PHASE2_NaOH_Wash.gif)
-![PHASE16](CIP_06_PHASE3_SafetyRinse.gif)
-![PHASE7](CIP_07_PHASE4_Acid_Wash.gif)
-![PHASE8](CIP_08_PHASE5_QualityGate.giff)
-![PHASE9](CIP_09_SAFETY_ESTOP.gif)
-![PHASE110](CIP_10_COMPLETE.gif)
+| 1 | Initial Rinse ![PHASE4](CIP_04_PHASE1_InitRinse.gif)| 3 min | Fresh water     | — |
+| 2 | Alkaline Wash ![PHASE5](CIP_05_PHASE2_NaOH_Wash.gif)| 42 min | NaOH 2% @ 30°C | η = 94.71% |
+| 3 | Safety Rinse ![PHASE16](CIP_06_PHASE3_SafetyRinse.gif)| 3 min | Fresh water       | — |
+| 4 | Acid Wash   ![PHASE7](CIP_07_PHASE4_Acid_Wash.gif) | 27 min | CH₃COOH 1% @ 40°C | η = 99.60% |
+| 5 | Final Rinse ![PHASE8](CIP_08_PHASE5_QualityGate.gif)| 5 min | Fresh water + Cond gate ≤ 0.5 mS/cm | — |
+
 
 
 **Total cycle: ~80 min · Fully automated · Zero chemical exposure**
