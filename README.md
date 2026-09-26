@@ -7,6 +7,14 @@ Grounded in experimental research from **Université du 20 Août 1955, Skikda, A
 ---
 
 ## Process Overview
+
+|Phase| Name      | Duration | Chemical      | Efficiency |
+|---|---|---|---|---|
+| 1 | Initial Rinse | 3 min | Fresh water     | — |
+| 2 | Alkaline Wash | 42 min | NaOH 2% @ 30°C | η = 94.71% |
+| 3 | Safety Rinse | 3 min | Fresh water       | — |
+| 4 | Acid Wash    | 27 min | CH₃COOH 1% @ 40°C | η = 99.60% |
+| 5 | Final Rinse | 5 min | Fresh water + Cond gate ≤ 0.5 mS/cm | — |
 ![PHASE1](CIP_01_IDLE.gif)
 ![PHASE2](CIP_02_PERMISSIVE_CHECK.gif)
 ![PHASE3](CIP_03_START_COMMAND.gif)
@@ -17,13 +25,7 @@ Grounded in experimental research from **Université du 20 Août 1955, Skikda, A
 ![PHASE8](CIP_08_PHASE5_QualityGate.giff)
 ![PHASE9](CIP_09_SAFETY_ESTOP.gif)
 ![PHASE110](CIP_10_COMPLETE.gif)
-|Phase| Name      | Duration | Chemical      | Efficiency |
-|---|---|---|---|---|
-| 1 | Initial Rinse | 3 min | Fresh water     | — |
-| 2 | Alkaline Wash | 42 min | NaOH 2% @ 30°C | η = 94.71% |
-| 3 | Safety Rinse | 3 min | Fresh water       | — |
-| 4 | Acid Wash    | 27 min | CH₃COOH 1% @ 40°C | η = 99.60% |
-| 5 | Final Rinse | 5 min | Fresh water + Cond gate ≤ 0.5 mS/cm | — |
+
 
 **Total cycle: ~80 min · Fully automated · Zero chemical exposure**
 
