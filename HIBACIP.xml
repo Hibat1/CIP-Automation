@@ -1,0 +1,1596 @@
+<?xml version='1.0' encoding='utf-8'?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0201" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <fileHeader companyName="Skikda University HIBACIP" productName="CODESYS" productVersion="3.5.16.50" creationDateTime="2026-06-10T00:00:00" />
+  <contentHeader name="HIBACIP" modificationDateTime="2026-06-10T00:00:00">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="1" y="1" />
+      </fbd>
+      <ld>
+        <scaling x="1" y="1" />
+      </ld>
+      <sfc>
+        <scaling x="1" y="1" />
+      </sfc>
+    </coordinateInfo>
+  </contentHeader>
+  <types>
+    <dataTypes />
+    <pous>
+      <pou name="FB_SensorDiag" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="w_RawAI">
+              <type>
+                <WORD />
+              </type>
+            </variable>
+            <variable name="r_EU_Lo">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_EU_Hi">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Filter_Alpha">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.15" />
+              </initialValue>
+            </variable>
+            <variable name="r_WB_Threshold">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="1000.0" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="r_ScaledPV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_FilteredPV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="b_WireFault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_BadQuality">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="r_Raw">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_PrevFilt">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>r_Raw := WORD_TO_REAL(w_RawAI);
+IF r_Raw &lt; r_WB_Threshold THEN
+    b_WireFault  := TRUE;
+    b_BadQuality := TRUE;
+    r_ScaledPV   := -999.0;
+    r_FilteredPV := -999.0;
+    RETURN;
+END_IF
+b_WireFault := FALSE;
+r_ScaledPV  := (r_Raw / 32767.0) * (r_EU_Hi - r_EU_Lo) + r_EU_Lo;
+IF r_ScaledPV &gt; r_EU_Hi THEN r_ScaledPV := r_EU_Hi; END_IF
+IF r_ScaledPV &lt; r_EU_Lo THEN r_ScaledPV := r_EU_Lo; END_IF
+r_FilteredPV := r_Filter_Alpha * r_ScaledPV
+    + (1.0 - r_Filter_Alpha) * r_PrevFilt;
+r_PrevFilt   := r_FilteredPV;
+b_BadQuality := b_WireFault;</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_ValveControl" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="b_Open_Cmd">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_EStop">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_FailOpen">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="q_ValveCoil">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF b_EStop THEN
+    q_ValveCoil := b_FailOpen;
+    RETURN;
+END_IF
+q_ValveCoil := b_Open_Cmd;</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_PumpControl" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="b_Start_Cmd">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Overload_OK">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_EStop">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="q_PumpCoil">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Running">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Fault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF b_EStop OR NOT b_Overload_OK THEN
+    q_PumpCoil := FALSE;
+    b_Running  := FALSE;
+    b_Fault    := NOT b_Overload_OK;
+    RETURN;
+END_IF
+q_PumpCoil := b_Start_Cmd;
+b_Running  := q_PumpCoil;
+b_Fault    := FALSE;</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_AlarmManager" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="b_AlarmIn">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Ack_Cmd">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="n_Priority">
+              <type>
+                <INT />
+              </type>
+              <initialValue>
+                <simpleValue value="3" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="b_Active">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Unacknowledged">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="b_PrevAlarm">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF b_AlarmIn AND NOT b_PrevAlarm THEN
+    b_Active         := TRUE;
+    b_Unacknowledged := TRUE;
+END_IF
+b_PrevAlarm := b_AlarmIn;
+IF NOT b_AlarmIn THEN b_Active := FALSE; END_IF
+IF b_Ack_Cmd THEN b_Unacknowledged := FALSE; END_IF</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_RecipeManager" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="n_SelectRecipe">
+              <type>
+                <INT />
+              </type>
+              <initialValue>
+                <simpleValue value="1" />
+              </initialValue>
+            </variable>
+            <variable name="b_Load_Cmd">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="r_Alk_Temp">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Acid_Temp">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_AlkWash">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_AcidWash">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Cond_Gate">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="s_RecipeName">
+              <type>
+                <string />
+              </type>
+            </variable>
+            <variable name="n_ActiveRecipe">
+              <type>
+                <INT />
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF b_Load_Cmd AND n_SelectRecipe &gt;= 1 AND n_SelectRecipe &lt;= 4 THEN
+    CASE n_SelectRecipe OF
+    1: r_Alk_Temp:=30.0; r_Acid_Temp:=40.0;
+       r_Dur_AlkWash:=2520.0; r_Dur_AcidWash:=1620.0;
+       r_Cond_Gate:=0.5; s_RecipeName:='STD-DESCALE';
+    2: r_Alk_Temp:=35.0; r_Acid_Temp:=45.0;
+       r_Dur_AlkWash:=3000.0; r_Dur_AcidWash:=1800.0;
+       r_Cond_Gate:=0.5; s_RecipeName:='HEAVY-SCALE';
+    3: r_Alk_Temp:=25.0; r_Acid_Temp:=35.0;
+       r_Dur_AlkWash:=1800.0; r_Dur_AcidWash:=1200.0;
+       r_Cond_Gate:=0.5; s_RecipeName:='LIGHT-MAINT';
+    4: r_Alk_Temp:=30.0; r_Acid_Temp:=40.0;
+       r_Dur_AlkWash:=2700.0; r_Dur_AcidWash:=1800.0;
+       r_Cond_Gate:=0.3; s_RecipeName:='PHARMA-GRADE';
+    END_CASE;
+    n_ActiveRecipe := n_SelectRecipe;
+END_IF</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_PID_Industrial" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="r_SP">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="b_Auto">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="r_Manual_Out">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Kp">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="3.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_Ti">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="12.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_Td">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="6.25" />
+              </initialValue>
+            </variable>
+            <variable name="r_Tf">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dt">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.02" />
+              </initialValue>
+            </variable>
+            <variable name="r_OutMin">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_OutMax">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="100.0" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="r_Output">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Error">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="r_Integral">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_D_Filt">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_PrevPV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Raw_Out">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_BackCalc">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Ki">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Kb">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF NOT b_Auto THEN
+    r_Output   := MAX(r_OutMin, MIN(r_OutMax, r_Manual_Out));
+    r_Integral := r_Output;
+    r_PrevPV   := r_PV;
+    r_D_Filt   := 0.0;
+    RETURN;
+END_IF
+r_Ki := (1.0 / r_Ti) * r_Dt;
+r_Kb := r_Dt / r_Ti;
+r_Error   := r_SP - r_PV;
+r_Integral := r_Integral + r_Kp * r_Ki * r_Error + r_BackCalc;
+r_D_Filt   := (r_Td * (r_PrevPV - r_PV) / r_Dt + r_D_Filt * r_Tf) / (r_Tf + r_Dt);
+r_Raw_Out  := r_Kp * r_Error + r_Integral + r_Kp * r_D_Filt;
+IF r_Raw_Out &gt; r_OutMax THEN
+    r_Output := r_OutMax;
+ELSIF r_Raw_Out &lt; r_OutMin THEN
+    r_Output := r_OutMin;
+ELSE
+    r_Output := r_Raw_Out;
+END_IF
+r_BackCalc := r_Kb * (r_Output - r_Raw_Out);
+r_PrevPV   := r_PV;</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_SafetyManager" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="r_Temp_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Pressure_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Flow_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="b_EStop_NC">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Pump_Cmd">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Pump_RunFB">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Pump_OL_OK">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_AI_Temp_Fault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_AI_Pres_Fault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_SafetyReset">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="r_Temp_TripSP">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="60.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Pres_TripSP">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="6.0" />
+              </initialValue>
+            </variable>
+            <variable name="t_PumpTimeout">
+              <type>
+                <TIME />
+              </type>
+              <initialValue>
+                <simpleValue value="T#3S" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="b_EStop_Active">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Alarm_HighTemp">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Alarm_HighPres">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Alarm_LowFlow">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Alarm_PumpFault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Alarm_AI_Fault">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_SafeState_Drain">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="n_Active">
+              <type>
+                <INT />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="ton_Pump">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="n_Count">
+              <type>
+                <INT />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>n_Count := 0;
+IF r_Temp_PV &gt;= r_Temp_TripSP OR b_AI_Temp_Fault THEN
+    b_Alarm_HighTemp := TRUE;
+    n_Count := n_Count + 1;
+END_IF
+IF r_Pressure_PV &gt;= r_Pres_TripSP OR b_AI_Pres_Fault THEN
+    b_Alarm_HighPres := TRUE;
+    n_Count := n_Count + 1;
+END_IF
+ton_Pump(IN := b_Pump_Cmd AND NOT b_Pump_RunFB, PT := t_PumpTimeout);
+IF ton_Pump.Q THEN
+    b_Alarm_PumpFault := TRUE;
+    n_Count := n_Count + 1;
+END_IF
+IF NOT b_EStop_NC THEN n_Count := n_Count + 1; END_IF
+IF NOT b_Pump_OL_OK THEN n_Count := n_Count + 1; END_IF
+b_Alarm_AI_Fault := b_AI_Temp_Fault OR b_AI_Pres_Fault;
+n_Active := n_Count;
+IF n_Count &gt; 0 THEN
+    b_EStop_Active    := TRUE;
+    q_SafeState_Drain := TRUE;
+END_IF
+IF b_SafetyReset AND NOT b_Alarm_HighTemp AND NOT b_Alarm_HighPres
+   AND NOT b_Alarm_PumpFault AND b_EStop_NC AND b_Pump_OL_OK THEN
+    b_EStop_Active    := FALSE;
+    b_Alarm_HighTemp  := FALSE;
+    b_Alarm_HighPres  := FALSE;
+    b_Alarm_PumpFault := FALSE;
+    b_Alarm_LowFlow   := FALSE;
+    q_SafeState_Drain := FALSE;
+    n_Active          := 0;
+END_IF</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="FB_CIP" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="cmd_Start">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="cmd_Stop">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="cmd_Hold">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="cmd_Restart">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="cmd_Abort">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="cmd_Reset">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Permissive_OK">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="r_Temp_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Cond_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Flow_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Alk_Temp_SP">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Acid_Temp_SP">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Cond_Baseline">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_InitRinse">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_AlkWash">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_InterRinse">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_AcidWash">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Dur_FinalRinse">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="q_Pump">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_NaOH">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_AcAc">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_Rinse">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_Drain">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="q_Steam_Enable">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="r_Temp_SP_Active">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="n_State">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="n_Phase">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="r_Progress">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="b_Complete">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Running">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Hold_Active">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_Abort_Active">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="s_State_Text">
+              <type>
+                <string />
+              </type>
+            </variable>
+            <variable name="b_Alarm_Rinse_Fail">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="r_NaOH_Vol">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_AcAc_Vol">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="ton_Phase">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="ton_Hold">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="ton_Abort">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="b_TimerEN">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="t_Target">
+              <type>
+                <TIME />
+              </type>
+              <initialValue>
+                <simpleValue value="T#3M" />
+              </initialValue>
+            </variable>
+            <variable name="n_HoldRes">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="r_Elapsed">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_TargetS">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>IF cmd_Abort AND n_State &lt;&gt; 20 AND n_State &lt;&gt; 21 THEN
+    n_State:=20; s_State_Text:='ABORTING'; b_Abort_Active:=TRUE;
+    q_NaOH:=FALSE; q_AcAc:=FALSE; q_Steam_Enable:=FALSE;
+    q_Drain:=TRUE; b_TimerEN:=FALSE; r_Temp_SP_Active:=0.0; RETURN;
+END_IF
+ton_Abort(IN:=n_State=20,PT:=T#30S);
+IF ton_Abort.Q AND n_State=20 THEN
+    n_State:=21; q_Drain:=FALSE; s_State_Text:='ABORTED';
+END_IF
+IF n_State=1 AND (NOT b_Permissive_OK OR cmd_Hold) THEN
+    n_HoldRes:=n_Phase; n_State:=10; s_State_Text:='HOLDING';
+    b_Hold_Active:=TRUE; b_TimerEN:=FALSE;
+    q_NaOH:=FALSE; q_AcAc:=FALSE; q_Steam_Enable:=FALSE;
+    q_Rinse:=TRUE; q_Pump:=TRUE;
+END_IF
+CASE n_State OF
+0:
+    q_Pump:=FALSE; q_NaOH:=FALSE; q_AcAc:=FALSE; q_Rinse:=FALSE;
+    q_Drain:=FALSE; q_Steam_Enable:=FALSE; b_Complete:=FALSE;
+    b_Running:=FALSE; b_Hold_Active:=FALSE; b_Abort_Active:=FALSE;
+    r_Progress:=0.0; n_Phase:=0; r_Temp_SP_Active:=0.0;
+    b_TimerEN:=FALSE; s_State_Text:='IDLE';
+    IF cmd_Start AND b_Permissive_OK THEN
+        n_State:=1; n_Phase:=1; s_State_Text:='RUNNING'; b_Running:=TRUE;
+    END_IF
+1:
+    s_State_Text:='RUNNING'; b_Running:=TRUE;
+    IF cmd_Stop THEN
+        n_State:=30; b_TimerEN:=FALSE; s_State_Text:='STOPPING'; RETURN;
+    END_IF
+    ton_Phase(IN:=b_TimerEN,PT:=t_Target);
+    r_Elapsed:=DINT_TO_REAL(TIME_TO_DINT(ton_Phase.ET))/1000.0;
+    r_TargetS:=DINT_TO_REAL(TIME_TO_DINT(t_Target))/1000.0;
+    IF r_TargetS &gt; 0.0 THEN r_Progress:=MIN(100.0,r_Elapsed/r_TargetS*100.0); END_IF
+    CASE n_Phase OF
+    1:
+        q_Rinse:=TRUE; q_Pump:=TRUE; q_Drain:=TRUE;
+        q_NaOH:=FALSE; q_AcAc:=FALSE; q_Steam_Enable:=FALSE; r_Temp_SP_Active:=0.0;
+        t_Target:=DINT_TO_TIME(REAL_TO_DINT(r_Dur_InitRinse*1000.0));
+        IF NOT b_TimerEN THEN b_TimerEN:=TRUE; END_IF
+        IF ton_Phase.Q THEN
+            b_TimerEN:=FALSE; q_Drain:=FALSE; n_Phase:=2;
+            ton_Phase(IN:=FALSE,PT:=t_Target);
+        END_IF
+    2:
+        q_NaOH:=TRUE; q_Pump:=TRUE; q_Steam_Enable:=TRUE;
+        q_Rinse:=FALSE; q_AcAc:=FALSE; q_Drain:=FALSE;
+        r_Temp_SP_Active:=r_Alk_Temp_SP;
+        t_Target:=DINT_TO_TIME(REAL_TO_DINT(r_Dur_AlkWash*1000.0));
+        IF NOT b_TimerEN THEN b_TimerEN:=TRUE; END_IF
+        IF ton_Phase.Q THEN
+            b_TimerEN:=FALSE; q_Steam_Enable:=FALSE; r_Temp_SP_Active:=0.0; n_Phase:=3;
+            ton_Phase(IN:=FALSE,PT:=t_Target);
+        END_IF
+    3:
+        q_Rinse:=TRUE; q_Pump:=TRUE; q_Drain:=TRUE;
+        q_NaOH:=FALSE; q_AcAc:=FALSE; q_Steam_Enable:=FALSE; r_Temp_SP_Active:=0.0;
+        t_Target:=DINT_TO_TIME(REAL_TO_DINT(r_Dur_InterRinse*1000.0));
+        IF NOT b_TimerEN THEN b_TimerEN:=TRUE; END_IF
+        IF ton_Phase.Q THEN
+            b_TimerEN:=FALSE; q_Drain:=FALSE; n_Phase:=4;
+            ton_Phase(IN:=FALSE,PT:=t_Target);
+        END_IF
+    4:
+        q_AcAc:=TRUE; q_Pump:=TRUE; q_Steam_Enable:=TRUE;
+        q_Rinse:=FALSE; q_NaOH:=FALSE; q_Drain:=FALSE;
+        r_Temp_SP_Active:=r_Acid_Temp_SP;
+        t_Target:=DINT_TO_TIME(REAL_TO_DINT(r_Dur_AcidWash*1000.0));
+        IF NOT b_TimerEN THEN b_TimerEN:=TRUE; END_IF
+        IF ton_Phase.Q THEN
+            b_TimerEN:=FALSE; q_Steam_Enable:=FALSE; r_Temp_SP_Active:=0.0; n_Phase:=5;
+            ton_Phase(IN:=FALSE,PT:=t_Target);
+        END_IF
+    5:
+        q_Rinse:=TRUE; q_Pump:=TRUE; q_Drain:=TRUE;
+        q_AcAc:=FALSE; q_Steam_Enable:=FALSE; r_Temp_SP_Active:=0.0;
+        t_Target:=DINT_TO_TIME(REAL_TO_DINT(r_Dur_FinalRinse*1000.0));
+        IF NOT b_TimerEN THEN b_TimerEN:=TRUE; END_IF
+        IF ton_Phase.Q THEN
+            b_TimerEN:=FALSE; ton_Phase(IN:=FALSE,PT:=t_Target);
+            IF r_Cond_PV &lt;= r_Cond_Baseline THEN
+                n_State:=5; n_Phase:=0; b_Complete:=TRUE; b_Running:=FALSE;
+                r_Progress:=100.0; s_State_Text:='COMPLETE';
+            ELSE
+                b_Alarm_Rinse_Fail:=TRUE; n_State:=20;
+                b_Abort_Active:=TRUE; s_State_Text:='ABORTING';
+            END_IF
+        END_IF
+    END_CASE
+5:
+    s_State_Text:='COMPLETE'; b_Complete:=TRUE; b_Running:=FALSE;
+    q_Pump:=FALSE; q_Rinse:=FALSE; q_Drain:=FALSE;
+    IF cmd_Reset THEN
+        n_State:=0; b_Complete:=FALSE; r_NaOH_Vol:=0.0; r_AcAc_Vol:=0.0;
+        b_Alarm_Rinse_Fail:=FALSE; s_State_Text:='IDLE';
+    END_IF
+10:
+    s_State_Text:='HOLDING'; q_Pump:=TRUE; q_Rinse:=TRUE;
+    q_NaOH:=FALSE; q_AcAc:=FALSE; q_Steam_Enable:=FALSE;
+    ton_Hold(IN:=TRUE,PT:=T#5S);
+    IF ton_Hold.Q THEN n_State:=11; s_State_Text:='HELD'; END_IF
+11:
+    s_State_Text:='HELD'; q_Pump:=TRUE; q_Rinse:=TRUE;
+    IF cmd_Restart AND b_Permissive_OK THEN
+        n_State:=12; s_State_Text:='RESTARTING';
+        b_Hold_Active:=FALSE; ton_Hold(IN:=FALSE,PT:=T#5S);
+    END_IF
+12:
+    s_State_Text:='RESTARTING'; ton_Hold(IN:=TRUE,PT:=T#5S);
+    IF ton_Hold.Q AND b_Permissive_OK THEN
+        n_Phase:=n_HoldRes; n_State:=1; s_State_Text:='RUNNING'; b_TimerEN:=FALSE;
+    END_IF
+20:
+    s_State_Text:='ABORTING'; q_NaOH:=FALSE; q_AcAc:=FALSE;
+    q_Steam_Enable:=FALSE; q_Pump:=TRUE; q_Rinse:=TRUE; q_Drain:=TRUE;
+21:
+    s_State_Text:='ABORTED'; q_Pump:=FALSE; q_Rinse:=FALSE; q_Drain:=FALSE;
+    IF cmd_Reset THEN
+        b_Abort_Active:=FALSE; b_Alarm_Rinse_Fail:=FALSE;
+        n_State:=0; s_State_Text:='IDLE';
+    END_IF
+30:
+    s_State_Text:='STOPPING'; q_NaOH:=FALSE; q_AcAc:=FALSE;
+    q_Steam_Enable:=FALSE; q_Pump:=TRUE; q_Rinse:=TRUE;
+    ton_Hold(IN:=TRUE,PT:=T#30S);
+    IF ton_Hold.Q THEN
+        q_Pump:=FALSE; q_Rinse:=FALSE; n_State:=31; s_State_Text:='STOPPED';
+    END_IF
+31:
+    s_State_Text:='STOPPED'; b_Running:=FALSE;
+    IF cmd_Reset THEN n_State:=0; s_State_Text:='IDLE'; END_IF
+ELSE
+    GVL_Alarms.b_EStop_Active:=TRUE;
+END_CASE</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="PLC_PRG" pouType="program">
+        <interface>
+          <localVars>
+            <variable name="fbSensTemp">
+              <type>
+                <derived name="FB_SensorDiag" />
+              </type>
+            </variable>
+            <variable name="fbSensPres">
+              <type>
+                <derived name="FB_SensorDiag" />
+              </type>
+            </variable>
+            <variable name="fbSensFlow">
+              <type>
+                <derived name="FB_SensorDiag" />
+              </type>
+            </variable>
+            <variable name="fbSensCond">
+              <type>
+                <derived name="FB_SensorDiag" />
+              </type>
+            </variable>
+            <variable name="fbSafety">
+              <type>
+                <derived name="FB_SafetyManager" />
+              </type>
+            </variable>
+            <variable name="fbPID">
+              <type>
+                <derived name="FB_PID_Industrial" />
+              </type>
+            </variable>
+            <variable name="fbCIP">
+              <type>
+                <derived name="FB_CIP" />
+              </type>
+            </variable>
+            <variable name="b_Permissive_OK">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="b_PID_Auto">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p>fbSensTemp(w_RawAI:=GVL_IO.w_Temp_RawAI,r_EU_Lo:=0.0,r_EU_Hi:=100.0);
+GVL_IO.r_Temp_PV := fbSensTemp.r_FilteredPV;
+fbSensPres(w_RawAI:=GVL_IO.w_Pres_RawAI,r_EU_Lo:=0.0,r_EU_Hi:=10.0);
+GVL_IO.r_Pres_PV := fbSensPres.r_FilteredPV;
+fbSensFlow(w_RawAI:=GVL_IO.w_Flow_RawAI,r_EU_Lo:=0.0,r_EU_Hi:=100.0);
+GVL_IO.r_Flow_PV := fbSensFlow.r_FilteredPV;
+fbSensCond(w_RawAI:=GVL_IO.w_Cond_RawAI,r_EU_Lo:=0.0,r_EU_Hi:=20.0);
+GVL_IO.r_Cond_PV := fbSensCond.r_FilteredPV;
+GVL_IO.i_CircPump_RunFB := GVL_IO.q_CircPump;
+fbSafety(
+    r_Temp_PV:=GVL_IO.r_Temp_PV, r_Pressure_PV:=GVL_IO.r_Pres_PV,
+    r_Flow_PV:=GVL_IO.r_Flow_PV, b_EStop_NC:=GVL_IO.i_EStop_NC,
+    b_Pump_Cmd:=GVL_IO.q_CircPump, b_Pump_RunFB:=GVL_IO.i_CircPump_RunFB,
+    b_Pump_OL_OK:=GVL_IO.i_CircPump_OL,
+    b_AI_Temp_Fault:=fbSensTemp.b_WireFault,
+    b_AI_Pres_Fault:=fbSensPres.b_WireFault,
+    b_SafetyReset:=GVL_IO.i_SafetyReset);
+IF fbSafety.b_EStop_Active THEN
+    GVL_IO.q_CircPump:=FALSE; GVL_IO.q_NaOH_Valve:=FALSE;
+    GVL_IO.q_AcAc_Valve:=FALSE; GVL_IO.q_Rinse_Valve:=FALSE;
+    GVL_IO.q_Steam_Enable:=FALSE; GVL_IO.q_Drain_Valve:=TRUE;
+    GVL_IO.r_SteamValve_Pct:=0.0; GVL_IO.q_Alarm_Light_R:=TRUE;
+    GVL_Alarms.b_EStop_Active:=TRUE;
+    GVL_Alarms.s_State_Name:='E-STOP'; RETURN;
+END_IF
+GVL_Alarms.b_EStop_Active:=FALSE;
+GVL_IO.q_Alarm_Light_R:=FALSE;
+b_Permissive_OK :=
+    GVL_IO.i_FlowSwitch_Min AND GVL_IO.i_EStop_NC AND GVL_IO.i_CircPump_OL
+    AND NOT fbSensTemp.b_WireFault AND (GVL_IO.r_Flow_PV &gt; 0.0)
+    AND (GVL_IO.r_Temp_PV &lt; GVL_Setpoints.r_Temp_HighTrip - 10.0);
+IF fbCIP.n_State = 1 THEN GVL_IO.i_Start_Command := FALSE; END_IF
+IF fbCIP.n_State = 31 THEN GVL_HMI.b_Stop_Cmd := FALSE; END_IF
+IF fbCIP.n_State = 0 THEN GVL_HMI.b_Reset_Cmd := FALSE; END_IF
+fbCIP(
+    cmd_Start:=GVL_IO.i_Start_Command, cmd_Stop:=GVL_HMI.b_Stop_Cmd,
+    cmd_Hold:=GVL_HMI.b_Hold_Cmd, cmd_Restart:=GVL_HMI.b_Restart_Cmd,
+    cmd_Abort:=GVL_HMI.b_Abort_Cmd, cmd_Reset:=GVL_HMI.b_Reset_Cmd,
+    b_Permissive_OK:=b_Permissive_OK,
+    r_Temp_PV:=GVL_IO.r_Temp_PV, r_Cond_PV:=GVL_IO.r_Cond_PV,
+    r_Flow_PV:=GVL_IO.r_Flow_PV,
+    r_Alk_Temp_SP:=GVL_Setpoints.r_Alk_Temp_SP,
+    r_Acid_Temp_SP:=GVL_Setpoints.r_Acid_Temp_SP,
+    r_Cond_Baseline:=GVL_Setpoints.r_Cond_Baseline,
+    r_Dur_InitRinse:=GVL_Setpoints.r_Dur_InitRinse,
+    r_Dur_AlkWash:=GVL_Setpoints.r_Dur_AlkWash,
+    r_Dur_InterRinse:=GVL_Setpoints.r_Dur_InterRinse,
+    r_Dur_AcidWash:=GVL_Setpoints.r_Dur_AcidWash,
+    r_Dur_FinalRinse:=GVL_Setpoints.r_Dur_FinalRinse);
+GVL_IO.q_CircPump:=fbCIP.q_Pump; GVL_IO.q_NaOH_Valve:=fbCIP.q_NaOH;
+GVL_IO.q_AcAc_Valve:=fbCIP.q_AcAc; GVL_IO.q_Rinse_Valve:=fbCIP.q_Rinse;
+GVL_IO.q_Drain_Valve:=fbCIP.q_Drain; GVL_IO.q_Steam_Enable:=fbCIP.q_Steam_Enable;
+GVL_Alarms.n_CIP_State:=fbCIP.n_State; GVL_Alarms.n_CIP_Phase:=fbCIP.n_Phase;
+GVL_Alarms.r_Phase_Progress:=fbCIP.r_Progress;
+GVL_Alarms.s_State_Name:=fbCIP.s_State_Text;
+GVL_Alarms.b_CIP_Complete:=fbCIP.b_Complete;
+GVL_Alarms.b_Hold_Active:=fbCIP.b_Hold_Active;
+b_PID_Auto := GVL_IO.q_Steam_Enable;
+fbPID(r_SP:=fbCIP.r_Temp_SP_Active, r_PV:=GVL_IO.r_Temp_PV,
+    b_Auto:=b_PID_Auto, r_Manual_Out:=GVL_HMI.r_PID_ManualOut,
+    r_Kp:=GVL_Setpoints.r_PID_Kp, r_Ti:=GVL_Setpoints.r_PID_Ti,
+    r_Td:=GVL_Setpoints.r_PID_Td, r_Tf:=GVL_Setpoints.r_PID_Tf,
+    r_Dt:=GVL_Setpoints.r_PID_Dt);
+GVL_IO.r_SteamValve_Pct:=fbPID.r_Output;
+GVL_IO.w_SteamValve_AO:=REAL_TO_WORD(GVL_IO.r_SteamValve_Pct/100.0*32767.0);
+GVL_IO.q_Status_Light_G:=fbCIP.b_Running;</xhtml:p>
+          </ST>
+        </body>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations>
+      <configuration name="HIBACIP">
+        <resource name="Resource">
+          <task name="MainTask" priority="1" interval="T#20ms" type="CYCLIC">
+            <pouInstance name="PLC_PRG" typeName="PLC_PRG" />
+          </task>
+          <globalVars name="GVL_IO" retain="false">
+            <variable name="w_Temp_RawAI">
+              <type>
+                <WORD />
+              </type>
+              <initialValue>
+                <simpleValue value="7209" />
+              </initialValue>
+            </variable>
+            <variable name="w_Pres_RawAI">
+              <type>
+                <WORD />
+              </type>
+              <initialValue>
+                <simpleValue value="6554" />
+              </initialValue>
+            </variable>
+            <variable name="w_Flow_RawAI">
+              <type>
+                <WORD />
+              </type>
+              <initialValue>
+                <simpleValue value="8192" />
+              </initialValue>
+            </variable>
+            <variable name="w_Cond_RawAI">
+              <type>
+                <WORD />
+              </type>
+              <initialValue>
+                <simpleValue value="1311" />
+              </initialValue>
+            </variable>
+            <variable name="r_Temp_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Pres_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Flow_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="r_Cond_PV">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="i_Start_Command">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="i_EStop_NC">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="i_CircPump_RunFB">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="i_CircPump_OL">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="i_FlowSwitch_Min">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="i_SafetyReset">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_CircPump">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_NaOH_Valve">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_AcAc_Valve">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Rinse_Valve">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Drain_Valve">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Steam_Enable">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Alarm_Light_R">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Status_Light_G">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="q_Alarm_Horn">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="r_SteamValve_Pct">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="w_SteamValve_AO">
+              <type>
+                <WORD />
+              </type>
+            </variable>
+          </globalVars>
+          <globalVars name="GVL_Setpoints" retain="true">
+            <variable name="r_Alk_Temp_SP">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="30.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Acid_Temp_SP">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="40.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Temp_HighTrip">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="60.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Cond_Baseline">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dur_InitRinse">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="180.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dur_AlkWash">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="2520.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dur_InterRinse">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="180.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dur_AcidWash">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="1620.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_Dur_FinalRinse">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="300.0" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_Kp">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="3.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_Ti">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="12.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_Td">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="6.25" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_Tf">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.5" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_Dt">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.02" />
+              </initialValue>
+            </variable>
+          </globalVars>
+          <globalVars name="GVL_Alarms" retain="false">
+            <variable name="b_EStop_Active">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Alarm_HighTemp">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Alarm_HighPres">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Alarm_PumpFault">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Alarm_RinseFail">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="n_CIP_State">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="n_CIP_Phase">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="r_Phase_Progress">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="b_CIP_Complete">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Hold_Active">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="s_State_Name">
+              <type>
+                <string />
+              </type>
+            </variable>
+          </globalVars>
+          <globalVars name="GVL_HMI" retain="false">
+            <variable name="b_Stop_Cmd">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Hold_Cmd">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Restart_Cmd">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Abort_Cmd">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_Reset_Cmd">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="b_HornSilence">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="FALSE" />
+              </initialValue>
+            </variable>
+            <variable name="r_PID_ManualOut">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </globalVars>
+        </resource>
+      </configuration>
+    </configurations>
+  </instances>
+</project>
