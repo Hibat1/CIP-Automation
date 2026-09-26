@@ -9,6 +9,7 @@ Grounded in experimental research from **Université du 20 Août 1955, Skikda, A
 ## Process Overview
 
 |Phase| Name      | Duration | Chemical      | Efficiency |
+|---|---|---|---|---|
 | 1 | Initial Rinse | 3 min | Fresh water     | — |
 | 2 | Alkaline Wash | 42 min | NaOH 2% @ 30°C | η = 94.71% |
 | 3 | Safety Rinse | 3 min | Fresh water       | — |
